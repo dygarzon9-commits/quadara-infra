@@ -1,0 +1,74 @@
+name: CD - Deploy backend to AKS
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "k8s/**"
+      - "scripts/deploy_backend.sh"
+      - ".github/workflows/deploy-aks.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+
+    env:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID:       ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID:       ${{ secrets.AZURE_CLIENT_ID }}
+
+      RESOURCE_GROUP:        ${{ secrets.AKS_RESOURCE_GROUP }}      # ParentalControl-RG
+      AKS_NAME:              ${{ secrets.AKS_CLUSTER_NAME }}        # parental-control-aks
+      ACR_NAME:              ${{ secrets.ACR_NAME }}                # quadaraacr
+
+      DB_HOST:               ${{ secrets.DB_HOST }}                 # parental-control-db.postgres.database.azure.com
+      DB_NAME:               ${{ secrets.DB_NAME }}                 # quadara_db
+      DB_USER:               ${{ secrets.DB_USER }}                 # pgadmin
+      DB_PASSWORD:           ${{ secrets.DB_PASSWORD }}
+      DB_SSLMODE:            ${{ secrets.DB_SSLMODE }}              # require
+
+      JWT_SECRET:            ${{ secrets.JWT_SECRET }}
+      JWT_EXPIRES_MIN:       ${{ secrets.JWT_EXPIRES_MIN }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Login to Azure via OIDC
+        uses: azure/login@v2
+        with:
+          client-id:     ${{ env.AZURE_CLIENT_ID }}
+          tenant-id:     ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Crear env/.env.generated
+        run: |
+          mkdir -p env
+          cat > env/.env.generated <<EOT
+          RESOURCE_GROUP="${RESOURCE_GROUP}"
+          AKS_NAME="${AKS_NAME}"
+          ACR_NAME="${ACR_NAME}"
+
+          DB_HOST="${DB_HOST}"
+          DB_NAME="${DB_NAME}"
+          DB_USER="${DB_USER}"
+          DB_PASSWORD="${DB_PASSWORD}"
+          DB_SSLMODE="${DB_SSLMODE}"
+
+          JWT_SECRET="${JWT_SECRET}"
+          JWT_EXPIRES_MIN="${JWT_EXPIRES_MIN}"
+          EOT
+
+          echo "env/.env.generated creado:"
+          cat env/.env.generated | sed 's/DB_PASSWORD=.*/DB_PASSWORD=*****/'
+
+      - name: Dar permisos al script de deploy
+        run: chmod +x scripts/deploy_backend.sh
+
+      - name: Ejecutar deploy backend
+        run: ./scripts/deploy_backend.sh

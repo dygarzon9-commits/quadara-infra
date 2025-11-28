@@ -1,0 +1,50 @@
+name: CI - Build backend images
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "backend/**"
+      - ".github/workflows/ci-build.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+
+    env:
+      ACR_NAME:              ${{ secrets.ACR_NAME }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID:       ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID:       ${{ secrets.AZURE_CLIENT_ID }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Login to Azure via OIDC
+        uses: azure/login@v2
+        with:
+          client-id:     ${{ env.AZURE_CLIENT_ID }}
+          tenant-id:     ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Validate ACR_NAME
+        run: |
+          if [ -z "${ACR_NAME}" ]; then
+            echo "❌ ACR_NAME no está definido en secrets."
+            exit 1
+          fi
+          echo "✅ ACR_NAME=${ACR_NAME}"
+
+      - name: Build images into ACR
+        run: |
+          for svc in auth-service device-management-service monitoring-service; do
+            echo "⏳ Building image for: $svc"
+            az acr build -r "$ACR_NAME" -t "$svc:latest" "backend/$svc"
+            echo "✅ Built $svc"
+          done

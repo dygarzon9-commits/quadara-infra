@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: auth-service } }
+  template:
+    metadata:
+      labels: { app: auth-service }
+    spec:
+      containers:
+      - name: auth-service
+        image: __ACR__/auth-service:latest
+        ports: [{containerPort: 80}]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: auth-service }
+spec:
+  selector: { app: auth-service }
+  ports: [{ port: 80, targetPort: 80, protocol: TCP, name: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: device-management-service
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: device-management-service } }
+  template:
+    metadata:
+      labels: { app: device-management-service }
+    spec:
+      containers:
+      - name: device-management-service
+        image: __ACR__/device-management-service:latest
+        ports: [{containerPort: 80}]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: device-management-service }
+spec:
+  selector: { app: device-management-service }
+  ports: [{ port: 80, targetPort: 80, protocol: TCP, name: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monitoring-service
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: monitoring-service } }
+  template:
+    metadata:
+      labels: { app: monitoring-service }
+    spec:
+      containers:
+      - name: monitoring-service
+        image: __ACR__/monitoring-service:latest
+        ports: [{containerPort: 80}]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: monitoring-service }
+spec:
+  selector: { app: monitoring-service }
+  ports: [{ port: 80, targetPort: 80, protocol: TCP, name: http }]
