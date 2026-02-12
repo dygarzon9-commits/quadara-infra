@@ -40,6 +40,9 @@ jobs:
         run: |
           for svc in auth-service device-management-service monitoring-service; do
             echo "⏳ Building image for: $svc"
-            az acr build -r "$ACR_NAME" -t "$svc:latest" "backend/$svc"
+            az acr build -r "$ACR_NAME" \
+               -t "$svc:latest" \
+               -f "backend/$svc/Dockerfile" \
+               backend
             echo "✅ Built $svc"
           done
