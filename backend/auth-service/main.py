@@ -1,20 +1,20 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from sqlalchemy import text
-from backend.shared.db.session import engine
+from shared.db.session import engine
 
 app = FastAPI(title="Auth Service")
 
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+@app.get("/health/live")
+def liveness():
+    return {"status": "alive"}
 
 
-@app.get("/db/health")
-def db_health():
+@app.get("/health/ready")
+def readiness():
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-        return {"database": "ok"}
+        return {"status": "ready"}
     except Exception as e:
-        return {"database": "error", "detail": str(e)}
+        raise HTTPException(status_code=503, detail=f"database not ready: {str(e)}")

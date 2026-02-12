@@ -2,14 +2,20 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 import os
+import sys
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.append(BASE_DIR)
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# NO usamos modelos todavía
-target_metadata = None
+# ahora si base.metadata
+from backend.shared.db.base import Base
+from backend.shared.db import models  # importa modelos para registrar metadata
 
+target_metadata = Base.metadata
 
 def get_url():
     db_host = os.environ["DB_HOST"]
