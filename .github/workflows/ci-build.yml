@@ -17,7 +17,7 @@ jobs:
 
     env:
       ACR_NAME: ${{ secrets.ACR_NAME }}
-
+    
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -28,6 +28,15 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Debug repo structure
+        run: |
+          echo "=== ROOT ==="
+          ls -la
+          echo "=== BACKEND ==="
+          ls -la backend
+          echo "=== AUTH ==="
+          ls -la backend/auth-service
+        
       - name: Validate ACR_NAME
         run: |
           if [ -z "${ACR_NAME}" ]; then
