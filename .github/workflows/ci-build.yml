@@ -22,21 +22,11 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Login con Service Principal usando AZURE_CREDENTIALS
       - name: Login to Azure (service principal)
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Debug repo structure
-        run: |
-          echo "=== ROOT ==="
-          ls -la
-          echo "=== BACKEND ==="
-          ls -la backend
-          echo "=== AUTH ==="
-          ls -la backend/auth-service
-        
       - name: Validate ACR_NAME
         run: |
           if [ -z "${ACR_NAME}" ]; then
@@ -50,6 +40,7 @@ jobs:
           for svc in auth-service device-management-service monitoring-service; do
             echo "⏳ Building image for: $svc"
             az acr build -r "$ACR_NAME" \
+               -t "$svc:${{ github.sha }}" \
                -t "$svc:latest" \
                -f "backend/$svc/Dockerfile" \
                .
