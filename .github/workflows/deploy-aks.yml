@@ -44,7 +44,7 @@ jobs:
       # Deploy Kubernetes manifests
       - name: Deploy to AKS
         run: |
-          kubectl apply -f k8s/
+          kubectl apply -f k8s/ --recursive
 
       # Verificar rollout
       - name: Verify deployment
