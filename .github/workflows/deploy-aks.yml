@@ -1,39 +1,36 @@
 name: CD - Deploy backend to AKS
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "k8s/**"
-      - ".github/workflows/deploy-aks.yml"
+  workflow_run:
+    workflows: ["CI - Build backend images"]
+    types:
+      - completed
 
   workflow_dispatch:
 
 jobs:
   deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     env:
       RESOURCE_GROUP: ${{ secrets.RESOURCE_GROUP }}
       AKS_NAME:       ${{ secrets.AKS_NAME }}
+      ACR_NAME:       ${{ secrets.ACR_NAME }}
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Login en Azure
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Fix problema API version
-      - name: Fix Azure CLI dynamic extension
+      - name: Fix Azure CLI
         run: |
           az config set extension.use_dynamic_install=yes_without_prompt
 
-      # Obtener credenciales de AKS
       - name: Get AKS credentials
         run: |
           az aks get-credentials \
@@ -41,14 +38,23 @@ jobs:
             --name $AKS_NAME \
             --overwrite-existing
 
-      # Deploy Kubernetes manifests
-      - name: Deploy to AKS
+      - name: Deploy using commit SHA image
         run: |
-          kubectl apply -f k8s/ --recursive
+          SHA=${{ github.event.workflow_run.head_sha }}
 
-      # Verificar rollout
-      - name: Verify deployment
+          echo "Deploying images with SHA: $SHA"
+
+          kubectl set image deployment/auth-service \
+            auth-service=$ACR_NAME.azurecr.io/auth-service:$SHA
+
+          kubectl set image deployment/device-management-service \
+            device-management-service=$ACR_NAME.azurecr.io/device-management-service:$SHA
+
+          kubectl set image deployment/monitoring-service \
+            monitoring-service=$ACR_NAME.azurecr.io/monitoring-service:$SHA
+
+      - name: Verify rollout
         run: |
-          kubectl rollout status deployment/auth-service --timeout=120s
-          kubectl rollout status deployment/device-management-service --timeout=120s
-          kubectl rollout status deployment/monitoring-service --timeout=120s
+          for svc in auth-service device-management-service monitoring-service; do
+            kubectl rollout status deployment/$svc --timeout=120s
+          done
