@@ -49,4 +49,6 @@ jobs:
       # Verificar rollout
       - name: Verify deployment
         run: |
-          kubectl rollout status deployment/backend
+          kubectl rollout status deployment/auth-service --timeout=120s
+          kubectl rollout status deployment/device-management-service --timeout=120s
+          kubectl rollout status deployment/monitoring-service --timeout=120s
