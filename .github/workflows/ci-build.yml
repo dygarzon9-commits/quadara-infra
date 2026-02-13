@@ -51,7 +51,7 @@ jobs:
             echo "⏳ Building image for: $svc"
             az acr build -r "$ACR_NAME" \
                -t "$svc:latest" \
-               -f "$svc/Dockerfile" \
-               backend
+               -f "backend/$svc/Dockerfile" \
+               .
             echo "✅ Built $svc"
           done
